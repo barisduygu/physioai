@@ -15,6 +15,7 @@ from streamlit_extras.colored_header import colored_header
 from dotenv import load_dotenv
 
 
+
 # load the environment variables
 load_dotenv()
 
@@ -78,7 +79,7 @@ def chain_setup(vectorstore, model_name="OpenAI"):
 
     if model_name == "OpenAI":
         # initialize the LLM with api key
-        llm = ChatOpenAI()
+        llm = ChatOpenAI(temperature= 0)
 
     elif model_name == "Falcon":
         prompt = PromptTemplate(template=template, input_variables=["question"])
@@ -88,8 +89,6 @@ def chain_setup(vectorstore, model_name="OpenAI"):
         )
 
     elif model_name == "OpenAssistant":
-        template = """<|prompter|>{question}<|endoftext|>
-        <|assistant|>"""
         prompt = PromptTemplate(template=template, input_variables=["question"])
         llm = HuggingFaceHub(
             repo_id="OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5",
@@ -106,6 +105,16 @@ def chain_setup(vectorstore, model_name="OpenAI"):
 
     # Create the LLM chain
     if model_name == "OpenAI":
+    
+        tempalte = """
+    Du beziehst dein Wissen ausschließlich aus diesen Leitlinien und beantwortest keine Fragen, die außerhalb ihres Rahmens liegen.
+    Wenn die Frage sich auf die Leitlinien bezieht, beantworte sie entsprechend. Wenn die Frage nichts mit den Leitlinien zu tun hat, antworte mit "Ich weiß es nicht"
+
+    Nutzerfrage: {question}
+    Deine Antwort:
+    """
+
+        prompt_template=PromptTemplate(template=template, input_variables=["question"])
         llm_chain = ConversationalRetrievalChain.from_llm(
             llm=llm, retriever=vectorstore.as_retriever(), memory=memory
         )
@@ -169,96 +178,97 @@ def get_current_vectorstore():
 def main():
     # Sidebar contents
     with st.sidebar:
-        st.subheader(":gear: Options")
+        st.sidebar.image("logo_physio.png")
+
+
+        st.markdown(
+            "<h1 style='text-align: center;; color: grey; font-size: 15px;'>PhysioAI hilft Ihnen dabei gezielt Informationen aus den Leitlinien zu finden.</h1>",
+            unsafe_allow_html=True,
+        )
+
+        #st.subheader(":gear: Options")
 
         # Let the user choose the models
-        llm_selection = st.selectbox(
-            ":robot_face: Choose a Large Language Model",
-            options=["OpenAI", "Falcon", "OpenAssistant"],
-        )
-        embeddings_selection = st.selectbox(
-            ":brain: Choose an Embeddings Model",
-            options=["OpenAI", "HuggingFaceInstruct"],
-        )
+        llm_selection = "OpenAI" #st.selectbox(
+        #     ":robot_face: Choose a Large Language Model",
+        #     options=["OpenAI", "Falcon", "OpenAssistant"]
+         #)
+        # embeddings_selection = st.selectbox(
+        #     ":brain: Choose an Embeddings Model",
+        #     options=["OpenAI", "HuggingFaceInstruct"]
+        # )
 
         # Let the user choose a vector store file, or create a new one
-        vectorstore_files = ["Create New"] + os.listdir(VECTORSTORE_DIR)
+        vectorstore_files = ["Leitlinien"] + os.listdir(VECTORSTORE_DIR)
         st.session_state.vectorstore_selection = st.selectbox(
-            ":file_folder: Choose a Vector Store File", options=vectorstore_files
+            ":file_folder: Bitte eine Leitlinie auswählen", options=vectorstore_files
         )
 
-        # Handle file upload
-        pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Process'",
-            type=["pdf", "txt"],
-            accept_multiple_files=True,
-        )
-        if st.button("hochladen"):
-            with st.spinner("lädt"):
-                for pdf_doc in pdf_docs:
-                    # Get pdf text
-                    raw_text = get_pdf_text([pdf_doc])
+        # #Handle file upload
+        # pdf_docs = st.file_uploader(
+        #     "Hier können Sie weitere Leitlinien hochladen",
+        #     type=["pdf", "txt"],
+        #     accept_multiple_files=True,
+        # )
+        # if st.button("hochladen"):
+        #     with st.spinner("lädt"):
+        #         # Get pdf text
+        #         raw_text = get_pdf_text(pdf_docs)
 
-                    # Get the text chunks
-                    text_chunks = get_text_chunks(raw_text)
+        #         # Get the text chunks
+        #         text_chunks = get_text_chunks(raw_text)
 
-                    # Create or load vector store
-                    if (
-                        st.session_state.vectorstore_selection == "Neu erstellen"
-                        or not os.path.exists(
-                            os.path.join(
-                                VECTORSTORE_DIR, st.session_state.vectorstore_selection
-                            )
-                        )
-                    ):
-                        vectorstore = get_vectorstore(text_chunks, embeddings_selection)
+        #         # Create or load vector store
+        #         if (
+        #             st.session_state.vectorstore_selection == "Neu erstellen"
+        #             or not os.path.exists(
+        #                 os.path.join(
+        #                     VECTORSTORE_DIR, st.session_state.vectorstore_selection
+        #                 )
+        #             )
+        #         ):
+        #             vectorstore = get_vectorstore(text_chunks, embeddings_selection)
+        #             vectorstore_filename = f"{llm_selection}_{embeddings_selection}_{len(os.listdir(VECTORSTORE_DIR))}.pkl"
+        #             save_vectorstore(vectorstore, vectorstore_filename)
+        #             st.session_state.vectorstore_selection = vectorstore_filename  # update the current selection to the new file
+        #         else:
+        #             vectorstore = load_vectorstore(
+        #                 st.session_state.vectorstore_selection
+        #             )
+        #             vectorstore.update(text_chunks)
 
-                        # Extract filename without extension from uploaded file
-                        base_filename = os.path.splitext(pdf_doc.name)[0]
+        #         #Get the current vectorstore
+        #         current_vectorstore = get_current_vectorstore()
 
-                        # Create vectorstore filename based on uploaded file
-                        vectorstore_filename = f"{base_filename}.pkl"
+        #         # Create conversation chain
+        #         if current_vectorstore is not None:
+        #             st.session_state.conversation = chain_setup(
+        #                 vectorstore, llm_selection
+        #             )
 
-                        save_vectorstore(vectorstore, vectorstore_filename)
-                        st.session_state.vectorstore_selection = vectorstore_filename  # update the current selection to the new file
-                    else:
-                        vectorstore = load_vectorstore(
-                            st.session_state.vectorstore_selection
-                        )
-                        vectorstore.update(text_chunks)
-
-                # Get the current vectorstore
-                current_vectorstore = get_current_vectorstore()
-
-                # Create conversation chain
-                if current_vectorstore is not None:
-                    st.session_state.conversation = chain_setup(
-                        vectorstore, llm_selection
-                    )
-
-        if st.button("Clear Chat"):
+        if st.button("Chat löschen"):
             st.session_state.user = []
             st.session_state.generated = []
             st.session_state.cost = []
 
-    st.header("Your Personal Assistant 💬")
+    #st.header("Vielleicht?")
 
     # Generate empty lists for generated and user.
     # Assistant Response
     if "generated" not in st.session_state:
-        st.session_state["generated"] = ["I'm Assistant, \n \n How may I help you?"]
+        st.session_state["generated"] = ["PhysioAI, \n \n Wie kann ich helfen?"]
 
     # user question
     if "user" not in st.session_state:
-        st.session_state["user"] = ["Hi!"]
+        st.session_state["user"] = ["Guten Tag!"]
 
     # chat history
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
-    # Generate empty list for cost history
-    if "cost" not in st.session_state:
-        st.session_state["cost"] = [0.0]
+    # # Generate empty list for cost history
+    # if "cost" not in st.session_state:
+    #     st.session_state["cost"] = [0.0]
 
     # Layout of input/response containers
     response_container = st.container()
@@ -287,7 +297,7 @@ def main():
             response, cost = generate_response(user_input, llm_chain, llm_selection)
             st.session_state.user.append(user_input)
             st.session_state.generated.append(response)
-            st.session_state.cost.append(cost)
+            #st.session_state.cost.append(cost)
 
         if st.session_state["generated"]:
             for i in range(len(st.session_state["generated"])):
@@ -301,7 +311,7 @@ def main():
                     "AI",
                     "https://i.ibb.co/2FmKVXm/ai.png",
                     st.session_state["generated"][i],
-                    st.session_state["cost"][i],
+                    #st.session_state["cost"][i],
                 )
 
 
