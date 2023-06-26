@@ -40,7 +40,7 @@ def get_pdf_text(pdf_docs):
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
-         chunk_size=1000, chunk_overlap=200, length_function=len
+        separator="\n", chunk_size=1000, chunk_overlap=200, length_function=len
     )
     chunks = text_splitter.split_text(text)
     return chunks
@@ -256,7 +256,7 @@ def main():
     # Generate empty lists for generated and user.
     # Assistant Response
     if "generated" not in st.session_state:
-        st.session_state["generated"] = ["PhysioAI, Wie kann ich helfen?"]
+        st.session_state["generated"] = ["PhysioAI, \n \n Wie kann ich helfen?"]
 
     # user question
     if "user" not in st.session_state:
