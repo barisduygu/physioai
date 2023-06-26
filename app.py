@@ -256,7 +256,7 @@ def main():
     # Generate empty lists for generated and user.
     # Assistant Response
     if "generated" not in st.session_state:
-        st.session_state["generated"] = ["PhysioAI, \n \n Wie kann ich helfen?"]
+        st.session_state["generated"] = ["PhysioAI, Wie kann ich helfen?"]
 
     # user question
     if "user" not in st.session_state:
