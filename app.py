@@ -193,32 +193,39 @@ def main():
             type=["pdf", "txt"],
             accept_multiple_files=True,
         )
-        if st.button("Process"):
-            with st.spinner("Processing"):
-                # Get pdf text
-                raw_text = get_pdf_text(pdf_docs)
+        if st.button("hochladen"):
+            with st.spinner("lädt"):
+                for pdf_doc in pdf_docs:
+                    # Get pdf text
+                    raw_text = get_pdf_text([pdf_doc])
 
-                # Get the text chunks
-                text_chunks = get_text_chunks(raw_text)
+                    # Get the text chunks
+                    text_chunks = get_text_chunks(raw_text)
 
-                # Create or load vector store
-                if (
-                    st.session_state.vectorstore_selection == "Create New"
-                    or not os.path.exists(
-                        os.path.join(
-                            VECTORSTORE_DIR, st.session_state.vectorstore_selection
+                    # Create or load vector store
+                    if (
+                        st.session_state.vectorstore_selection == "Neu erstellen"
+                        or not os.path.exists(
+                            os.path.join(
+                                VECTORSTORE_DIR, st.session_state.vectorstore_selection
+                            )
                         )
-                    )
-                ):
-                    vectorstore = get_vectorstore(text_chunks, embeddings_selection)
-                    vectorstore_filename = f"{llm_selection}_{embeddings_selection}_{len(os.listdir(VECTORSTORE_DIR))}.pkl"
-                    save_vectorstore(vectorstore, vectorstore_filename)
-                    st.session_state.vectorstore_selection = vectorstore_filename  # update the current selection to the new file
-                else:
-                    vectorstore = load_vectorstore(
-                        st.session_state.vectorstore_selection
-                    )
-                    vectorstore.update(text_chunks)
+                    ):
+                        vectorstore = get_vectorstore(text_chunks, embeddings_selection)
+
+                        # Extract filename without extension from uploaded file
+                        base_filename = os.path.splitext(pdf_doc.name)[0]
+
+                        # Create vectorstore filename based on uploaded file
+                        vectorstore_filename = f"{base_filename}_{len(os.listdir(VECTORSTORE_DIR))}.pkl"
+
+                        save_vectorstore(vectorstore, vectorstore_filename)
+                        st.session_state.vectorstore_selection = vectorstore_filename  # update the current selection to the new file
+                    else:
+                        vectorstore = load_vectorstore(
+                            st.session_state.vectorstore_selection
+                        )
+                        vectorstore.update(text_chunks)
 
                 # Get the current vectorstore
                 current_vectorstore = get_current_vectorstore()
