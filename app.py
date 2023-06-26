@@ -217,7 +217,7 @@ def main():
                         base_filename = os.path.splitext(pdf_doc.name)[0]
 
                         # Create vectorstore filename based on uploaded file
-                        vectorstore_filename = f"{base_filename}_{len(os.listdir(VECTORSTORE_DIR))}.pkl"
+                        vectorstore_filename = f"{base_filename}.pkl"
 
                         save_vectorstore(vectorstore, vectorstore_filename)
                         st.session_state.vectorstore_selection = vectorstore_filename  # update the current selection to the new file
